@@ -1,0 +1,320 @@
+Installing Ansible 
+
+Python needed to be downloaded first, with out python, ansible will not run. 
+open python official documentation - download python installer for windows and run it - https://www.python.org/downloads/windows/
+open official docu of Ansible and check what version you need and what python version you need to download for that Ansible version 
+
+then after installing python, just run 'pip install ansible'. it will install ansible. check for warnings during installation. they are very important.
+
+---
+Ansible on Linux - 
+
+open ansible official documentation - open install ansible on ubuntu - https://docs.ansible.com/ansible/latest/installation_guide/installation_distros.html#installing-ansible-on-ubuntu
+follow the four steps mentioned there, check 'ansible -m ping localhost' after installation. if it prints message, the ansible installation is successful
+
+Ansible on windows - 
+ansible is not much compatible with windows, so generally you download wsl ( windows sub system linux ) and then handle it like a linux just above 
+
+---
+
+Okay, so first up, we're going to take a look at what's known as a module. And a module I like to think of is just a unit within Ansible that helps you make a change to your system. For example, perhaps copy a file, or set a system configuration value, or maybe even install an application. This is a very low‑level component that you can compose together to make bigger changes. So let's start with a module, and we'll build our way up from there.
+
+---
+
+module is the smallest unit of work within the ansible. with modules we can do tasks with ansible. for eg, we can create a simple file with file module.
+cmd to create file using file module - //ansible -m file -a "dest=hello state=touch" localhost [ in the cmd, file defines a file to create &  localhost specifies where it shud create file, in this case, it means the same machine where ansible is running ].
+
+cmd to create directory - // ansible -m file -a "dest=test state=directory" localhost [ -m means module & -a means arguments, we can use --args instead of -a ]
+cmd to delete something - // ansible -m file -a "dest=test state=absent" localhost [ based on dest, it will delete as state is absent ] 
+
+we now know file is a module - but how to know more about what that module does, the cmd for that is - // ansible-doc file [ if you need to know another module per say copy, you shud put copy instead of file ]
+or
+we can go to the browser and check for ansible official documentation 
+
+what is meant by check mode - when we run ansible cmd and add --check at the end, it will say us if it executes successful or not. but doesnt execute the change.
+                              ( basically, defines what the changes are gonna be, just like terraform plan )
+                 diff mode - when we run --diff at the end, it shows the previous state and what state it is adding to the module.
+
+but not all modules supports diff and check modes, to see if they support we need to check attributes section after running doc cmd 'ansible-doc module' 	
+
+-----------
+
+what is inventory - with inventory, you can make chnages to the remote machines using ansible in your local machine, the cmd we use will be same but we need to use  -i 'name of host'  and ssh client of remote host in place of localhost. 
+sample cmd - // ansible -i 'pi4' -m file -a "dest=test state=directory" pi4adderess [ we can do more with inventory, actually inventory is a file, but as we are still in basic, we just using -i ] 
+
+-----------
+
+we can list all the remote hosts we want to connect and make changes in an inventory file. so create a file name my_inventory and list all the hosts we can connect.
+
+then run the cmd in which host we need the change -// 	ansible -i 'pi4' -m file -a "dest=test state=directory" pi4adderess
+
+but everytime giving -i is hectic and need to make it user friendly. so for that create ansible.cfg file and give content like 
+[default]
+inventory=my_inventory 
+
+after creating ansible config file, ansible will look at config and get to know there is inventory file, so we dont need to specify -i flag everytime we run ansible cmd 
+
+cmd to use after we create config file - // ansible -m file -a "dest=test state=directory" pi4adderess	
+
+not just inventory we can give many things on ansible.cfg file and we can manage the desired state of output of a certain command. per say, we can give --diff command in config file and we dont need to give --diff each time we run the ansible command. like that, we can do many things and please check for 'ansibel-config list' cmd to lists the things we can give on ansible.
+
+------------	 
+
+Ansible Playbook - so what is playbook - a playbook of ansible executes many modules as tasks in one go so that the usage of adhoc commands reduces.
+
+generally, to execute a module, we will use ansible adhoc command [ a cmd given direclty on the cmd line is called adhoc command, in telugu appatikappudu ] 
+with playbook we can define tasks and execute modules as tasks [ again, what is module, a module is a smallest unit of work in ansible, with modules we can get the desired state of configuration either in our local machine or any other host which is connected to ansible, eg: using file module we can create file directly with single command either in our local host or remote host ]
+
+cmd to execute playbook   // ansible-playbook playbookname.yml -v  [ -v will give the extra logs & -vv will more extra logs etc ] 
+
+basic playbook syntax//
+-name : hello-world
+ hosts: localhost
+ tasks:
+ -copy: dest=hello content=world   [ name is name of playbook, hosts defines which machine the change is needed & tasks defines the modules we gonna execute for the desired configuration ] 
+
+----------------------------------
+
+for the local host, you dont need inventory, so -i flag is not needed to make change in local host, instead we use -m flag with the name of the module for suppose // ansible -m file 
+-a flag means arguments 
+so the full command to make change in local host is //   ansible -m file -a "dest=hello content=world" localhost
+
+after running ansible command, if its prints evrything in yellow, means changes happened, if its green, then cmd is success but no change needed, red is obviously the failure
+
+---
+
+ansible-config -h                   // will list the commands we can use with ansible-config
+ansibel-config dump --only-changed  // will list the changes we have made other than the defaults 
+
+
+------
+
+opened the VS code and written another task in the existing playbook for pip module to install ansible-lintansible-lint
+ansible-lint reads and suggests the error while writitng a playbook, just like eclipse and intellij does for java 
+
+-------
+
+lets say there are 10 tasks within the playbook & for now, we only chnaged, we dont want to run the entire playbook, we can just give tags option at the name & call the tags inthe cmd line, playbook runs only those tasks
+eg cmd // ansible-playbook playbook name --tags taskname1,taskname7. 
+
+-----
+
+we know diff mode prints what is happening on playbook. also we know we need to give it from cmd line as --diff, but if we need it in default way or for certain task, we can add it in the playbook so that we dont have to give it in cmd line
+
+eg syntax // -name : hello-world
+              hosts: localhost
+			  diff: true
+			  check_mode: true 
+              tasks:                          [ simlilarly check mode can also be given ] 
+			  
+by the way, the above eg shows we only used it for a play. we can use it for the task too 
+
+eg syntax // -name : hello-world
+              hosts: localhost                [ hosts all here  executes changes for all hosts ]
+			  become: true 
+			  gather_facts: false 			  [ we can set gather facts to false so that the playbook stops gathering facts ]
+			  gather_subset: 
+              - '!min '
+              -  processor                     [ we can give gather subset which shows info about what we need, !min is used to not collect any other facts ]		  
+			  tasks:
+			  - name : random task
+			    diff: true
+			    check_mode: true              [ become true will make us sudo user so that permission issues wont arrive ] 
+			    when:                         [ we can give when condition in tasks or plays so that to define a condition for them for suppose, run only when its linux ]
+----
+ when we run playbook, there will be gathering facts things runs , generally its getting info about the host. 
+ we can also manually get it by // ansible -m setup hostname // not the exact command, need to check.
+ 
+----
+
+ansible-doc -keyword keywordname // will give the info about specific keywords in playbook, for eg we can know about gather_facts & gather_subset if we use them in this command as keywords. 
+
+----
+
+ANSIBLE COLLECTIONS 
+
+ansible-galaxy collection // very imp cmd on collections. give -h for helping with this command 
+
+ansible-galaxy colllection list // this cmd will list all the collectiosn we have in our machine. each collection will have lot of modules available in them. for eg community.aws collection will have all the modules related to aws.
+
+ansible and ansible core are the packages within the python. so when we delete ansible, the modules associated with ansible will get deleted but modules associated with ansible core will not be deleted. 
+[the above is very imp, its second video of collections in the wes higbee started course of ansible. please re-visit it if you somehow forgot it ] 
+
+we can just download the specific collection we need even though we dont have the ansible package in our python, for eg // ansible-galaxy collection install community.general.timezone // will install the timezone module
+
+
+ansible-doc --list  // will list all the modules that are available 
+
+Dissecting a Collection: ansible-galaxy collection download - very imp video - please do re-watch it 
+
+lets take an eg collection // ansible.builtin.ping // here ansible is the namespace, buitin is the collection & ping is the module.
+so basically a collection has three components... a namespace, collection name & module. another important component is content type. here the content type is module itself. note that the content type can be anything, it can be a module, it can be a plugin or it can even be a playbook which i think it mean we can define playbooks as a form of collections. 
+
+galaxy.ansible.com will give info about the collections. infact it will take to the ansible docs page and there you can see what modules each collections holds and what we can do with them 
+index of all modules will give the list of all modules one by one with the collections names at top. 
+
+----------
+
+INVENTORY TO MANAGE MULTIPLE HOSTS
+
+
+until now, our inventory is static but now we gonna discuss about the dynamic inventory 
+
+---
+
+written a sample-playbook to create and run docker container 
+
+check for docker-playbook.yml in ansible of aws ec2 
+
+----
+
+ansible-inventory --list --yaml  // will list the hosts inside our inventory file 
+
+ansible -m command -a hostname all  // will derive the hostname of the host of the ansible given in inventory file
+
+xclip > dynamic-docker.yml          // this cmd given the dynamic inventory file which we can override by giving this file at the time of running the playbook. eg usage
+ansible-playbook playbookname -i dynamic-inventoryfile  // with this cmd, the inventory we have created will be overridden and tis dynamic file will be taken as an inventory file. 
+
+---
+there is confusion on what is plugin of ansible. please clear that. also, wes higbee didnt teach about the variables, he didnt have a topic on how we can give them or use them. 
+please check the above two topics 
+
+module_defaults is not listened properly, please check it again 
+
+
+----
+
+with in the playbook before the tasks we need to give vars file 
+
+i have roles instead of tasks, need to know what is that 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
